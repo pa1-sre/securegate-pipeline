@@ -1,0 +1,5 @@
+[[rules]]
+id = "custom-secret"
+description = "Catch FAKE secrets"
+regex = '''FAKE-SECRET-[0-9]+'''
+
