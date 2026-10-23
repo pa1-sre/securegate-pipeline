@@ -1,0 +1,13 @@
+name: SecurteGate Pipeline
+
+on:
+  pull_request
+
+jobs:
+  secrets-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4 #checkout on the runner!
+        with: 
+          fetch-depth: 0 #to make sure entire commit history is available for scan
+      - uses: gitleaks/gitleaks-action@v2 #looks for pattern's like api keys, tokens & passwords
