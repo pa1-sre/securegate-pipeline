@@ -8,22 +8,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-        with: 
-          fetch-depth: 0 
+        with:
+          fetch-depth: 0
+
       - name: Set up JDK 21
         uses: actions/setup-java@v5
-        with: 
+        with:
           distribution: 'temurin'
           java-version: '21'
+
       - name: Install SonarScanner CLI
-        run:
+        run: |
           curl -sSLo sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006.zip
           unzip sonar-scanner.zip -d $HOME
           echo "$HOME/sonar-scanner-5.0.1.3006/bin" >> $GITHUB_PATH
-      - name: SonarCloud Scan
-        run: 
-          sonar-scanner \ 
+
+      - name: Run SonarCloud Scan
+        run: |
+          sonar-scanner \
             -Dsonar.projectKey=pa1-sre \
             -Dsonar.organization=pa1-sre \
             -Dsonar.python.version=3.9 \
-            -Dsonar.login=${{secrets.SONAR_TOKEN}}
+            -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+
