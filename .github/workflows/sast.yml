@@ -24,3 +24,4 @@ jobs:
             -Dsonar.projectKey=pa1-sre
             -Dsonar.organization=pa1-sre
             -Dsonar.python.version=3.9
+            -Dsonar.scanner.forceJreProvisioning=true
