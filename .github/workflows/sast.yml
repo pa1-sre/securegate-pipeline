@@ -29,5 +29,5 @@ jobs:
             -Dsonar.projectKey=pa1-sre \
             -Dsonar.organization=pa1-sre \
             -Dsonar.python.version=3.9 \
-            -Dsonar.login=${{ secrets.SONAR_TOKEN }} \
+            -Dsonar.token=b28df84427dcbb55766fb3d296d65529f970e9bf \
             -Dsonar.host.url=https://sonarcloud.io
