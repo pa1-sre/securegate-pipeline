@@ -13,3 +13,42 @@ jobs:
       - uses: gitleaks/gitleaks-action@v2 #looks for pattern's like api keys, tokens & passwords
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  sast:
+   # needs: secrets-scan  # Only runs if secrets-scan passes!
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Install SonarScanner CLI
+        run: |
+          curl -sSLo sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006.zip
+          unzip sonar-scanner.zip -d $HOME
+          echo "$HOME/sonar-scanner-5.0.1.3006/bin" >> $GITHUB_PATH
+
+      - name: Run SonarCloud Scan
+        run: |
+          sonar-scanner \
+            -Dsonar.projectKey=pa1-sre \
+            -Dsonar.organization=pa1-sre \
+            -Dsonar.python.version=3.9 \
+            -Dsonar.token=${{ secrets.SONAR_TOKEN }}
+            -Dsonar.host.url=https://sonarcloud.io
+  trivy-scan:
+   # needs: sast  # Only runs if sast passes!
+    runs-on: ubuntu-latest
+    steps: 
+      - uses: actions/checkout@v5
+      - name: Trivy vulnerability scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          severity: 'CRITICAL, HiGH'
+          exit-code: 1
