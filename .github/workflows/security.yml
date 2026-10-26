@@ -1,4 +1,4 @@
-name: SecurteGate Pipeline
+name: SecureGate Pipeline
 
 on:
   pull_request:
@@ -13,10 +13,10 @@ jobs:
       - name: Gitleaks Scan
         uses: gitleaks/gitleaks-action@v2
         with:
-          args: --report-path=gitleaks-results.json
+          args: protect --verbose --redact --report-path=gitleaks-results.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        continue-on-error: true
+        continue-on-error: false # Must fail the job if a secret is found
 
   sast:
     runs-on: ubuntu-latest
@@ -54,10 +54,11 @@ jobs:
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'fs'
+          scan-ref: '.'
           format: 'json'
           output: 'trivy-results.json'
           severity: 'CRITICAL,HIGH'
-          exit-code: 1
+          exit-code: '1' # Must fail the job if vulnerabilities are found
 
   build-sign-sbom:
     runs-on: ubuntu-latest
@@ -110,20 +111,12 @@ jobs:
           docker run -d -p 3000:3000 --name running-app securegate-app:latest
           sleep 5
 
-      - name: Debug Container & Health Check
-        run: |
-          echo "=== Container Status ==="
-          docker ps -a
-          echo "=== Container Logs ==="
-          docker logs running-app
-          echo "=== Testing Local Connection ==="
-          curl -v http://127.0.0.1:3000 || true
-
       - name: OWASP ZAP Baseline Scan
         uses: zaproxy/action-baseline@v0.14.0
         with:
           target: 'http://127.0.0.1:3000'
           fail_action: false
+          report_file: 'report_json.json'
 
       - name: Ensure ZAP Report Exists
         run: |
@@ -133,11 +126,12 @@ jobs:
 
   upload-reports:
     needs: [secrets-scan, trivy-scan, dast-scan]
-    if: always()
+    if: always() # Runs regardless of whether scan jobs pass or fail
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Touch fallback files if any scan output was missing
+        run: |
+          touch gitleaks-results.json trivy-results.json report_json.json
       - name: Upload Scan Reports Artifact
         uses: actions/upload-artifact@v4
         with:
@@ -146,7 +140,6 @@ jobs:
             gitleaks-results.json
             trivy-results.json
             report_json.json
-        continue-on-error: true
 
   ai-triage:
     needs: [upload-reports]
@@ -193,6 +186,6 @@ jobs:
                 issue_number: context.payload.pull_request.number,
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                body: `### SecureGate AI Security Triage\n\n${summary}`
+                body: `###SecureGate AI Security Triage\n\n${summary}`
               });
             }
