@@ -174,6 +174,13 @@ jobs:
           path: .
         continue-on-error: true
 
+      - name: Debug Workspace Files
+        run: |
+          echo "=== Files available to AI Triage ==="
+          ls -la
+          echo "=== Gitleaks Content Preview ==="
+          head -c 200 gitleaks-results.json || echo "File missing"
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
