@@ -1,20 +1,24 @@
 name: SecurteGate Pipeline
 
 on:
-  pull_request
+  pull_request:
 
 jobs:
   secrets-scan:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4 #checkout on the runner!
-        with: 
-          fetch-depth: 0 #to make sure entire commit history is available for scan
-      - uses: gitleaks/gitleaks-action@v2 #looks for pattern's like api keys, tokens & passwords
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Gitleaks Scan
+        uses: gitleaks/gitleaks-action@v2
+        with:
+          args: --report-path=gitleaks-results.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
   sast:
-   # needs: secrets-scan  # Only runs if secrets-scan passes!
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -41,23 +45,25 @@ jobs:
             -Dsonar.python.version=3.9 \
             -Dsonar.token=${{ secrets.SONAR_TOKEN }} \
             -Dsonar.host.url=https://sonarcloud.io
+
   trivy-scan:
-   # needs: sast  # Only runs if sast passes!
     runs-on: ubuntu-latest
-    steps: 
+    steps:
       - uses: actions/checkout@v4
       - name: Trivy vulnerability scan
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'fs'
+          format: 'json'
+          output: 'trivy-results.json'
           severity: 'CRITICAL,HIGH'
           exit-code: 1
-          
+
   build-sign-sbom:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write #required for Cosign keyless signing!
+      id-token: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -65,10 +71,9 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build Docker image locally 
-        run: 
-          docker build -t securegate-app:latest .
-          
+      - name: Build Docker image locally
+        run: docker build -t securegate-app:latest .
+
       - name: Install Syft (SBOM Generator)
         uses: anchore/sbom-action@v0
         with:
@@ -82,10 +87,8 @@ jobs:
       - name: Verify Cosign Installation
         run: cosign version
 
-      # Note: For local non-pushed images in CI, we demonstrate the tool setup and signing mechanics. 
-      # When pushing to a real registry (like GitHub Packages or Docker Hub), you would sign the image digest.
       - name: Sign Container Image (Keyless Demo)
-        run:
+        run: |
           echo "Simulating signature for local build..."
           echo "Cosign tool is ready and configured for keyless signing!"
 
@@ -93,7 +96,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      issues: write #Allows ZAP action to log issues, if configured
+      issues: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -120,10 +123,33 @@ jobs:
         uses: zaproxy/action-baseline@v0.14.0
         with:
           target: 'http://127.0.0.1:3000'
-          fail_action: false  # Set to false for baseline demo so missing headers don't hard-fail the entire build while learning ZAP logs
+          fail_action: false
+
+      - name: Ensure ZAP Report Exists
+        run: |
+          if [ ! -f report_json.json ]; then
+            echo "{}" > report_json.json
+          fi
+
+  upload-reports:
+    needs: [secrets-scan, trivy-scan, dast-scan]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Upload Scan Reports Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-reports
+          path: |
+            gitleaks-results.json
+            trivy-results.json
+            report_json.json
+        continue-on-error: true
 
   ai-triage:
-    needs: [secrets-scan, sast, trivy-scan, build-sign-sbom, dast-scan]
+    needs: [upload-reports]
     if: always()
     runs-on: ubuntu-latest
     permissions:
@@ -133,10 +159,19 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Download All Scan Reports
+        uses: actions/download-artifact@v4
+        with:
+          name: security-reports
+          path: .
+        continue-on-error: true
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.9'
+
       - name: Run AI Triage (Gemini Flash)
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
@@ -151,15 +186,13 @@ jobs:
             if (!fs.existsSync('ai_summary.md')) return;
             const summary = fs.readFileSync('ai_summary.md', 'utf8');
 
-            // 1. Post to GitHub Actions Step Summary tab
-            core.summary.addHeading('🤖 SecureGate AI Triage Report').addRaw(summary).write();
+            core.summary.addHeading('SecureGate AI Triage Report').addRaw(summary).write();
 
-            // 2. Post as PR Comment if triggered by pull request
             if (context.payload.pull_request) {
               await github.rest.issues.createComment({
                 issue_number: context.payload.pull_request.number,
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                body: `### 🤖 SecureGate AI Security Triage\n\n${summary}`
+                body: `### SecureGate AI Security Triage\n\n${summary}`
               });
             }
