@@ -16,7 +16,6 @@ jobs:
           args: protect --verbose --redact --report-path=gitleaks-results.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        continue-on-error: true
 
       - name: Upload Gitleaks Report
         uses: actions/upload-artifact@v4
