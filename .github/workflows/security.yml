@@ -85,7 +85,7 @@ jobs:
       # Note: For local non-pushed images in CI, we demonstrate the tool setup and signing mechanics. 
       # When pushing to a real registry (like GitHub Packages or Docker Hub), you would sign the image digest.
       - name: Sign Container Image (Keyless Demo)
-        run: |
+        run:
           echo "Simulating signature for local build..."
-          # In production with a registry: cosign sign --yes securegate-app@$DIGEST
-          echo "Cosign tool is ready and configured for keyless signing!"`
+          echo "Cosign tool is ready and configured for keyless signing!"
+
