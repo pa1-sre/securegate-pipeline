@@ -3,6 +3,10 @@ import yaml
 
 app = Flask(__name__)
 
+@app.route("/", methods=["GET"])
+def index()
+    return "SecureGate API is running!", 200
+
 @app.route("/parse", methods=["POST"])
 def parse_yaml():
     data = request.data.decode("utf-8")
