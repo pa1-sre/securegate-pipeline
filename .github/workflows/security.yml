@@ -100,7 +100,7 @@ jobs:
 
       - name: Build and run app container
         run: |
-          docker build -t securegate-app:latest .
+          docker build --no-cache -t securegate-app:latest .
           docker run -d -p 5000:5000 --name running-app securegate-app:latest
           sleep 5
 
