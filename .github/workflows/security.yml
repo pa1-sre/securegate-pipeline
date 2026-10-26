@@ -99,7 +99,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build and run app container
-        run:
+        run: |
           docker build -t securegate-app:latest .
           docker run -d -p 5000:5000 --name running-app securegate-app:latest
           sleep 5 #giving app 5 seconds to fully initialize
