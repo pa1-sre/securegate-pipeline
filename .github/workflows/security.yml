@@ -91,8 +91,8 @@ jobs:
 
   dast-scan:
     runs-on: ubuntu-latest
-    permssions:
-      content: read
+    permissions:
+      contents: read
       issues: write #Allows ZAP action to log issues, if configured
     steps:
       - name: Checkout code
