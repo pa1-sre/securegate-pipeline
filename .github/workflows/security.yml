@@ -17,7 +17,7 @@ jobs:
    # needs: secrets-scan  # Only runs if secrets-scan passes!
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -39,16 +39,16 @@ jobs:
             -Dsonar.projectKey=pa1-sre \
             -Dsonar.organization=pa1-sre \
             -Dsonar.python.version=3.9 \
-            -Dsonar.token=${{ secrets.SONAR_TOKEN }}
+            -Dsonar.token=${{ secrets.SONAR_TOKEN }} \
             -Dsonar.host.url=https://sonarcloud.io
   trivy-scan:
    # needs: sast  # Only runs if sast passes!
     runs-on: ubuntu-latest
     steps: 
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
       - name: Trivy vulnerability scan
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'fs'
-          severity: 'CRITICAL, HIGH'
+          severity: 'CRITICAL,HIGH'
           exit-code: 1
