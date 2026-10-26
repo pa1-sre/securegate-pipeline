@@ -4,7 +4,7 @@ import yaml
 app = Flask(__name__)
 
 @app.route("/", methods=["GET"])
-def index()
+def index():
     return "SecureGate API is running!", 200
 
 @app.route("/parse", methods=["POST"])
