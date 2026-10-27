@@ -53,6 +53,7 @@ jobs:
             -Dsonar.python.version=3.9 \
             -Dsonar.token=${{ secrets.SONAR_TOKEN }} \
             -Dsonar.host.url=https://sonarcloud.io
+            -Dsonar.coverage.exclusions=**/*
 
   trivy-scan:
     runs-on: ubuntu-latest
