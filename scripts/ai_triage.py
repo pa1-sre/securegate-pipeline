@@ -14,7 +14,7 @@ def load_json_safely(filepath):
 
 def aggregate_reports():
     return {
-        "gitleaks": load_json_safely("gitleaks-results.json"),
+        "gitleaks": load_json_safely("gitleaks-results.sarif"), # Updated to look for sarif
         "trivy": load_json_safely("trivy-results.json"),
         "zap_dast": load_json_safely("report_json.json")
     }
@@ -24,8 +24,9 @@ def call_gemini_flash(scan_data):
     if not api_key:
         return "⚠️ `GEMINI_API_KEY` secret is missing. AI Triage skipped cloud analysis."
 
+    # Using the standard gemini-1.5-flash endpoint
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
-    
+
     prompt = f"""
 You are a DevSecOps AI Assistant analyzing pipeline scan results for "SecureGate".
 Summarize the findings into a clean, professional, plain-English executive report card for the developer.
@@ -58,13 +59,16 @@ Raw Scan Payload:
         with urllib.request.urlopen(req) as resp:
             res = json.loads(resp.read().decode("utf-8"))
             return res["candidates"][0]["content"]["parts"][0]["text"]
+    except urllib.error.HTTPError as e:
+        error_body = e.read().decode("utf-8")
+        return f"Error connecting to Gemini API (HTTP {e.code}): {error_body}"
     except Exception as e:
         return f"Error connecting to Gemini API: {str(e)}"
 
 if __name__ == "__main__":
     data = aggregate_reports()
     report = call_gemini_flash(data)
-    
+
     with open("ai_summary.md", "w") as f:
         f.write(report)
     print("AI Triage summary generated successfully.")
