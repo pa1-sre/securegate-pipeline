@@ -52,7 +52,7 @@ jobs:
             -Dsonar.organization=pa1-sre \
             -Dsonar.python.version=3.9 \
             -Dsonar.token=${{ secrets.SONAR_TOKEN }} \
-            -Dsonar.host.url=https://sonarcloud.io
+            -Dsonar.host.url=https://sonarcloud.io \
             -Dsonar.coverage.exclusions=**/*
 
   trivy-scan:
